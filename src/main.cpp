@@ -46,6 +46,7 @@ void setup()
   pinMode(BUZZER_PIN, OUTPUT);
   // Initial state for states and timers..
   tl_state = RED_STATE;
+  buzz_state = BUZZER_OFF_STATE;
   tl_timer = millis() + RED_MILLIS;
   buzz_timer = millis() + RED_BUZZER_ON_MILLIS;
 }
@@ -55,6 +56,8 @@ void loop()
   switch (tl_state)
   {
   case RED_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Red state...\n");
     digitalWrite(RED_PIN, HIGH);
     if (millis() > tl_timer)
     {
@@ -65,6 +68,8 @@ void loop()
     }
     break;
   case RED_YELLOW_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Red-yellow state...\n");
     digitalWrite(RED_PIN, HIGH);
     digitalWrite(YELLOW_PIN, HIGH);
     if (millis() > tl_timer)
@@ -77,6 +82,8 @@ void loop()
     }
     break;
   case YELLOW_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Yellow state...\n");
     if (tl_timer < millis())
     {
       Serial.println("Switching from yellow to red...\n");
@@ -85,6 +92,8 @@ void loop()
     }
     break;
   case GREEN_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Green state...\n");
     digitalWrite(GREEN_PIN, HIGH);
     if (tl_timer < millis() && digitalRead(BUTTON_PIN) == HIGH)
     {
@@ -96,16 +105,18 @@ void loop()
     break;
   }
 
-  switch (tl_state)
+  switch (buzz_state)
   {
   case BUZZER_ON_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Buzzer on state...\n");
     if (tl_state == YELLOW_STATE || tl_state == RED_YELLOW_STATE)
     {
       unsetTone(BUZZER_PIN);
       buzz_state = BUZZER_OFF_STATE;
       buzz_timer = millis() + RED_BUZZER_OFF_MILLIS;
     }
-    else if (millis() > buzz_timer)
+    else if (buzz_timer < millis())
     {
       Serial.println("Turning off buzzer...\n");
       unsetTone(BUZZER_PIN);
@@ -117,12 +128,13 @@ void loop()
     }
     break;
   case BUZZER_OFF_STATE:
+    if (millis() % 1000 == 0)
+      Serial.println("Buzzer off state...\n");
     if (tl_state == YELLOW_STATE || tl_state == RED_YELLOW_STATE)
     {
-      buzz_timer = millis() + RED_BUZZER_ON_MILLIS;
-      break;
+      buzz_timer = millis() + RED_BUZZER_OFF_MILLIS;
     }
-    else if (millis() > buzz_timer)
+    else if (buzz_timer < millis())
     {
       Serial.println("Turning on buzzer...\n");
       if (tl_state == GREEN_STATE)
