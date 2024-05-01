@@ -2,17 +2,27 @@
 #define RED_PIN 32
 #define YELLOW_PIN 33
 #define GREEN_PIN 25
+#define BUTTON_PIN 26
+#define BUZZER_PIN 27
 // Hard coded enumerator
 #define RED_STATE 0
 #define RED_YELLOW_STATE 1
 #define YELLOW_STATE 2
 #define GREEN_STATE 3
+#define BUZZER_ON_STATE 0
+#define BUZZER_OFF_STATE 1
 #define RED_MILLIS 10000
 #define RED_YELLOW_MILLIS 2000
 #define YELLOW_MILLIS 2000
 #define GREEN_MILLIS 5000
-int tl_state;           // Traffic light state.
+#define RED_BUZZER_ON_MILLIS 250
+#define RED_BUZZER_OFF_MILLIS 250
+#define GREEN_BUZZER_ON_MILLIS 500
+#define GREEN_BUZZER_OFF_MILLIS 1500
+int tl_state;
+int buzz_state;
 unsigned long tl_timer; // Traffic light timer.
+unsigned long buzz_timer;
 
 void setup()
 {
@@ -20,14 +30,16 @@ void setup()
   pinMode(RED_PIN, OUTPUT);
   pinMode(YELLOW_PIN, OUTPUT);
   pinMode(GREEN_PIN, OUTPUT);
+  pinMode(BUTTON_PIN, INPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
   // Initial state for states and timers..
   tl_state = RED_STATE;
   tl_timer = millis() + RED_MILLIS;
+  buzz_timer = millis() + RED_BUZZER_ON_MILLIS;
 }
 
 void loop()
 {
-  // TL state machine
   switch (tl_state)
   {
   case RED_STATE:
@@ -59,7 +71,7 @@ void loop()
     break;
   case GREEN_STATE:
     digitalWrite(GREEN_PIN, HIGH);
-    if (tl_timer < millis() /*&& button pressed*/)
+    if (tl_timer < millis() && digitalRead(BUTTON_PIN) == HIGH)
     {
       digitalWrite(GREEN_PIN, LOW);
       tl_timer = millis() + YELLOW_MILLIS;
@@ -68,15 +80,46 @@ void loop()
     break;
   }
 
-  // TODO: Detect touch - button pressed.
-
   switch (tl_state)
   {
-  case RED_STATE:
-
+  case BUZZER_ON_STATE:
+    if (tl_state == YELLOW_STATE || tl_state == RED_YELLOW_STATE)
+    {
+      noTone(BUZZER_PIN);
+      buzz_state = BUZZER_OFF_STATE;
+      buzz_timer = millis() + RED_BUZZER_OFF_MILLIS;
+    }
+    else if (millis() > buzz_timer)
+    {
+      noTone(BUZZER_PIN);
+      buzz_state = BUZZER_OFF_STATE;
+      if (tl_state == GREEN_STATE)
+        buzz_timer = millis() + GREEN_BUZZER_OFF_MILLIS;
+      else // (tl_state == RED_STATE)
+        buzz_timer = millis() + RED_BUZZER_OFF_MILLIS;
+    }
     break;
-  case GREEN_STATE:
-
+  case BUZZER_OFF_STATE:
+    if (tl_state == YELLOW_STATE || tl_state == RED_YELLOW_STATE)
+    {
+      buzz_timer = millis() + RED_BUZZER_ON_MILLIS;
+      break;
+    }
+    else if (millis() > buzz_timer)
+    {
+      if (tl_state == GREEN_STATE)
+      {
+        buzz_state = BUZZER_ON_STATE;
+        tone(BUZZER_PIN, 1000);
+        buzz_timer = millis() + GREEN_BUZZER_ON_MILLIS;
+      }
+      else // (tl_state == RED_STATE)
+      {
+        buzz_state = BUZZER_ON_STATE;
+        tone(BUZZER_PIN, 1000);
+        buzz_timer = millis() + RED_BUZZER_ON_MILLIS;
+      }
+    }
     break;
   }
 }
